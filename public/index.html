@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="/style.css">
   <script src="/uv/uv.bundle.js"></script>
   <script src="/uv/uv.config.js"></script>
-  <script src="/baremux/worker.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -18,21 +17,14 @@
 </head>
 <body>
   <div class="browser-bar">
-    <button class="nav-btn" onclick="goBack()">←</button>
-    <button class="nav-btn" onclick="goForward()">→</button>
+    <button class="nav-btn" onclick="history.back()">←</button>
+    <button class="nav-btn" onclick="history.forward()">→</button>
     <button class="nav-btn" onclick="goHome()">⌂</button>
     <input type="text" id="urlInput" placeholder="URLを入力 (例: youtube.com)" autofocus>
     <button id="searchButton" class="go-btn">Go</button>
   </div>
 
-  <iframe id="iframeWindow" class="iframeWindow" src="about:blank"></iframe>
-
-  <script src="/epoxy/index.mjs" type="module"></script>
   <script>
-    const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-    const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-    const bareUrl = (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/";
-    const iframeWindow = document.getElementById("iframeWindow");
     const urlInput = document.getElementById("urlInput");
 
     urlInput.addEventListener("keydown", function(e) {
@@ -42,7 +34,7 @@
       }
     });
 
-    async function navigate(url) {
+    function navigate(url) {
       if (!url.includes(".")) {
         url = "https://www.google.com/search?q=" + encodeURIComponent(url);
       } else {
@@ -50,30 +42,18 @@
           url = "https://" + url;
         }
       }
-      if (!await connection.getTransport()) {
-        await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-      }
-      iframeWindow.src = __uv$config.prefix + __uv$config.encodeUrl(url);
+      // ★ iframe なし：トップレベルで直接遷移
+      location.href = __uv$config.prefix + __uv$config.encodeUrl(url);
     }
 
-    document.getElementById("searchButton").onclick = async function(e) {
+    document.getElementById("searchButton").onclick = function(e) {
       e.preventDefault();
-      await navigate(urlInput.value.trim());
+      navigate(urlInput.value.trim());
     };
 
-    function goBack() { history.back(); }
-    function goForward() { history.forward(); }
-    function goHome() { navigate("https://www.google.com"); }
-
-    // URLバーを同期
-    window.addEventListener("popstate", () => {
-      const url = iframeWindow.src;
-      if (url && url !== "about:blank") {
-        try {
-          urlInput.value = __uv$config.decodeUrl(url.replace(__uv$config.prefix, ""));
-        } catch(e) {}
-      }
-    });
+    function goHome() {
+      navigate("https://www.google.com");
+    }
   </script>
 </body>
 </html>   
