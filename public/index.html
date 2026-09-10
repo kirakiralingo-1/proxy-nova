@@ -1,84 +1,147 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Proxy Browser</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f1a; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-  .toolbar {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 12px; background: #1a1a2e;
-    border-bottom: 1px solid #2a2a4a;
-  }
-  .toolbar button {
-    background: #2a2a4a; color: #ccc; border: none;
-    width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
-    font-size: 16px; display: flex; align-items: center; justify-content: center;
-    transition: background .15s;
-  }
-  .toolbar button:hover { background: #e94560; color: #fff; }
-  #url-input {
-    flex: 1; padding: 9px 16px; border-radius: 20px;
-    border: 1px solid #2a2a4a; background: #0f0f1a;
-    color: #eee; font-size: 14px; outline: none;
-  }
-  #url-input:focus { border-color: #e94560; }
-  .frame-wrap { flex: 1; position: relative; }
-  .frame-wrap iframe { width: 100%; height: 100%; border: none; background: #fff; }
-  #status {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,.8); color: #fff; padding: 4px 14px;
-    border-radius: 12px; font-size: 12px; display: none; z-index: 10;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proxy Browser</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; background: #1e1e2e; color: #cdd6f4; }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; background: #181825;
+      border-bottom: 1px solid #313244; flex-shrink: 0;
+    }
+    .btn {
+      background: #313244; border: none; color: #cdd6f4;
+      width: 34px; height: 34px; border-radius: 8px;
+      cursor: pointer; font-size: 16px; display: flex;
+      align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .btn:hover { background: #45475a; }
+    .btn:disabled { opacity: .4; cursor: default; }
+
+    .address-bar {
+      flex: 1; height: 34px; background: #313244;
+      border: 1px solid #45475a; border-radius: 8px;
+      padding: 0 14px; color: #cdd6f4; font-size: 14px;
+      outline: none; transition: border-color .15s;
+    }
+    .address-bar:focus { border-color: #89b4fa; }
+
+    .go-btn {
+      background: #89b4fa; color: #1e1e2e; border: none;
+      padding: 0 16px; height: 34px; border-radius: 8px;
+      font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    .go-btn:hover { background: #74c7ec; }
+
+    .iframe-wrap { flex: 1; }
+    .iframe-wrap iframe {
+      width: 100%; height: 100%; border: none;
+      background: #fff;
+    }
+
+    .status {
+      padding: 4px 12px; font-size: 11px; color: #6c7086;
+      background: #181825; border-top: 1px solid #313244;
+      flex-shrink: 0;
+    }
+  </style>
 </head>
 <body>
-<div class="toolbar">
-  <button id="btn-back" title="戻る">←</button>
-  <button id="btn-fwd" title="進む">→</button>
-  <button id="btn-reload" title="再読み込み">⟳</button>
-  <input id="url-input" type="text" placeholder="https://discord.com" autocomplete="off" spellcheck="false">
-  <button id="btn-go" style="width:auto;padding:0 14px;font-size:13px;" title="開く">Go</button>
-</div>
-<div class="frame-wrap">
-  <div id="status">読み込み中...</div>
-  <iframe id="frame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads"></iframe>
-</div>
-<script>
-const input = document.getElementById('url-input');
-const frame = document.getElementById('frame');
-const status = document.getElementById('status');
-let hist = [], idx = -1;
+  <div class="toolbar">
+    <button class="btn" id="back" disabled>←</button>
+    <button class="btn" id="fwd" disabled>→</button>
+    <button class="btn" id="reload">⟳</button>
+    <button class="btn" id="home">⌂</button>
+    <input
+      class="address-bar" id="url"
+      type="text" placeholder="https://www.youtube.com"
+      spellcheck="false"
+    />
+    <button class="go-btn" id="go">Go</button>
+  </div>
 
-function normalize(u) {
-  u = u.trim();
-  if (!u) return null;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  return u;
-}
+  <div class="iframe-wrap">
+    <iframe id="frame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
 
-function navigate(url) {
-  if (!url) return;
-  status.style.display = 'block';
-  frame.src = '/proxy?url=' + encodeURIComponent(url);
-  hist = hist.slice(0, idx + 1);
-  hist.push(url);
-  idx++;
-  input.value = url;
-}
+  <div class="status" id="status">Ready</div>
 
-frame.addEventListener('load', () => { status.style.display = 'none'; });
+  <script>
+    const frame = document.getElementById("frame");
+    const urlInput = document.getElementById("url");
+    const status = document.getElementById("status");
+    const backBtn = document.getElementById("back");
+    const fwdBtn = document.getElementById("fwd");
 
-document.getElementById('btn-go').onclick = () => navigate(normalize(input.value));
-input.addEventListener('keydown', e => { if (e.key === 'Enter') navigate(normalize(input.value)); });
-document.getElementById('btn-back').onclick = () => { if (idx > 0) { idx--; frame.src = '/proxy?url=' + encodeURIComponent(hist[idx]); } };
-document.getElementById('btn-fwd').onclick = () => { if (idx < hist.length - 1) { idx++; frame.src = '/proxy?url=' + encodeURIComponent(hist[idx]); } };
-document.getElementById('btn-reload').onclick = () => { frame.src = frame.src; };
+    let history = [];
+    let histIndex = -1;
 
-// 初期: Discord
-navigate('https://discord.com/app');
-</script>
+    function navigate(url) {
+      if (!url) return;
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
+      }
+      const proxyUrl = "/p/" + url;
+      frame.src = proxyUrl;
+      status.textContent = "Loading: " + url;
+
+      // 履歴管理
+      if (histIndex < history.length - 1) history = history.slice(0, histIndex + 1);
+      history.push(url);
+      histIndex++;
+      updateButtons();
+      urlInput.value = url;
+    }
+
+    function updateButtons() {
+      backBtn.disabled = histIndex <= 0;
+      fwdBtn.disabled = histIndex >= history.length - 1;
+    }
+
+    document.getElementById("go").onclick = () => navigate(urlInput.value);
+    urlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") navigate(urlInput.value);
+    });
+
+    backBtn.onclick = () => {
+      if (histIndex > 0) {
+        histIndex--;
+        frame.src = "/p/" + history[histIndex];
+        urlInput.value = history[histIndex];
+        updateButtons();
+      }
+    };
+
+    fwdBtn.onclick = () => {
+      if (histIndex < history.length - 1) {
+        histIndex++;
+        frame.src = "/p/" + history[histIndex];
+        urlInput.value = history[histIndex];
+        updateButtons();
+      }
+    };
+
+    document.getElementById("reload").onclick = () => {
+      if (histIndex >= 0) frame.src = "/p/" + history[histIndex];
+    };
+
+    document.getElementById("home").onclick = () => {
+      frame.src = "about:blank";
+      urlInput.value = "";
+      status.textContent = "Ready";
+    };
+
+    frame.addEventListener("load", () => {
+      status.textContent = "Loaded: " + (history[histIndex] || "about:blank");
+    });
+
+    // 初期表示
+    navigate("https://www.bing.com");
+  </script>
 </body>
 </html>   
