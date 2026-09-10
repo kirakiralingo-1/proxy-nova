@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: browser-proxy
+    name: full-proxy
     runtime: node
     plan: free
     buildCommand: npm install
