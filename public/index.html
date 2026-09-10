@@ -3,19 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Browser Proxy</title>
-  <link rel="stylesheet" href="style.css">
+  <title>UV Browser Proxy</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/uv/uv.bundle.js"></script>
+  <script src="/uv/uv.config.js"></script>
+  <script src="/baremux/worker.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/uv/sw.js");
+      });
+    }
+  </script>
 </head>
 <body>
-  <div class="toolbar">
-    <button id="backBtn" title="戻る">←</button>
-    <button id="forwardBtn" title="進む">→</button>
-    <button id="reloadBtn" title="再読み込み">↻</button>
+  <div class="browser-bar">
+    <button class="nav-btn" onclick="goBack()">←</button>
+    <button class="nav-btn" onclick="goForward()">→</button>
+    <button class="nav-btn" onclick="goHome()">⌂</button>
     <input type="text" id="urlInput" placeholder="URLを入力 (例: youtube.com)" autofocus>
-    <button id="goBtn">Go</button>
+    <button id="searchButton" class="go-btn">Go</button>
   </div>
-  <div id="status"></div>
-  <iframe id="frame" src="about:blank"></iframe>
-  <script src="app.js"></script>
+
+  <iframe id="iframeWindow" class="iframeWindow" src="about:blank"></iframe>
+
+  <script src="/epoxy/index.mjs" type="module"></script>
+  <script>
+    const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+    const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+    const bareUrl = (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/";
+    const iframeWindow = document.getElementById("iframeWindow");
+    const urlInput = document.getElementById("urlInput");
+
+    urlInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("searchButton").click();
+      }
+    });
+
+    async function navigate(url) {
+      if (!url.includes(".")) {
+        url = "https://www.google.com/search?q=" + encodeURIComponent(url);
+      } else {
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          url = "https://" + url;
+        }
+      }
+      if (!await connection.getTransport()) {
+        await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+      }
+      iframeWindow.src = __uv$config.prefix + __uv$config.encodeUrl(url);
+    }
+
+    document.getElementById("searchButton").onclick = async function(e) {
+      e.preventDefault();
+      await navigate(urlInput.value.trim());
+    };
+
+    function goBack() { history.back(); }
+    function goForward() { history.forward(); }
+    function goHome() { navigate("https://www.google.com"); }
+
+    // URLバーを同期
+    window.addEventListener("popstate", () => {
+      const url = iframeWindow.src;
+      if (url && url !== "about:blank") {
+        try {
+          urlInput.value = __uv$config.decodeUrl(url.replace(__uv$config.prefix, ""));
+        } catch(e) {}
+      }
+    });
+  </script>
 </body>
 </html>   
