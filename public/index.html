@@ -1,186 +1,74 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Proxy Browser</title>
-<style>
-:root {
-  --bg: #0f0f1a;
-  --surface: #1a1a2e;
-  --surface2: #252540;
-  --border: #333355;
-  --text: #e0e0f0;
-  --text-dim: #8888aa;
-  --accent: #6c5ce7;
-  --accent-hover: #7c6ef0;
-  --radius: 12px;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  height: 100vh; display: flex; flex-direction: column;
-  background: var(--bg); color: var(--text);
-}
-
-/* ── ツールバー ── */
-.toolbar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.nav-btns { display: flex; gap: 4px; }
-.nav-btns button {
-  width: 36px; height: 36px;
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--text); border-radius: 8px;
-  cursor: pointer; font-size: 15px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.nav-btns button:hover { background: var(--accent); border-color: var(--accent); }
-.nav-btns button:disabled { opacity: .3; cursor: default; }
-.nav-btns button:disabled:hover { background: var(--surface2); border-color: var(--border); }
-
-/* ── アドレスバー ── */
-.addr-wrap {
-  flex: 1; position: relative;
-}
-.addr-wrap .lock {
-  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  font-size: 13px; color: var(--text-dim); pointer-events: none;
-}
-.addr-wrap input {
-  width: 100%; height: 38px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0 14px 0 34px;
-  color: var(--text); font-size: 14px;
-  outline: none; transition: border-color .2s, box-shadow .2s;
-}
-.addr-wrap input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(108,92,231,.15);
-}
-.go-btn {
-  height: 38px; padding: 0 20px;
-  background: var(--accent); color: #fff;
-  border: none; border-radius: var(--radius);
-  font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: background .15s;
-  white-space: nowrap;
-}
-.go-btn:hover { background: var(--accent-hover); }
-
-/* ── クイックアクセス ── */
-.quick {
-  display: flex; gap: 8px; padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto; flex-shrink: 0;
-}
-.quick a {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 14px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text); font-size: 12px; font-weight: 500;
-  text-decoration: none; white-space: nowrap;
-  transition: all .15s;
-}
-.quick a:hover { background: var(--accent); border-color: var(--accent); }
-.quick a .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-}
-
-/* ── ステータスバー ── */
-.status {
-  padding: 6px 16px;
-  font-size: 11px; color: var(--text-dim);
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex; justify-content: space-between;
-  flex-shrink: 0;
-}
-.status .dot {
-  display: inline-block; width: 6px; height: 6px;
-  border-radius: 50%; background: #2ecc71;
-  margin-right: 6px;
-}
-.status .dot.loading { background: #f39c12; animation: pulse 1s infinite; }
-@keyframes pulse { 50% { opacity: .4; } }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Proxy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+    .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f1f3f4; border-bottom: 1px solid #ddd; }
+    .toolbar button { padding: 6px 12px; border: none; border-radius: 4px; background: #e0e0e0; cursor: pointer; font-size: 14px; }
+    .toolbar button:hover { background: #d0d0d0; }
+    #url-bar { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 14px; outline: none; }
+    #url-bar:focus { border-color: #4285f4; }
+    .frame-container { flex: 1; }
+    iframe { width: 100%; height: 100%; border: none; }
+    .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; }
+    .loading.show { display: flex; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4285f4; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-
-<div class="toolbar">
-  <div class="nav-btns">
-    <button id="back" title="戻る" disabled>←</button>
-    <button id="fwd" title="進む" disabled>→</button>
-    <button id="reload" title="再読み込み">⟳</button>
+  <div class="toolbar">
+    <button onclick="goBack()">←</button>
+    <button onclick="goForward()">→</button>
+    <button onclick="reload()">⟳</button>
+    <input id="url-bar" type="text" placeholder="URLを入力（例: youtube.com）" onkeydown="if(event.key==='Enter')navigate()">
+    <button onclick="navigate()">Go</button>
   </div>
-  <div class="addr-wrap">
-    <span class="lock">🔒</span>
-    <input id="url" type="text" placeholder="URLを入力... (例: youtube.com)" spellcheck="false" autofocus/>
+  <div class="frame-container">
+    <iframe id="frame" src="about:blank"></iframe>
   </div>
-  <button class="go-btn" id="go">Go</button>
-</div>
+  <div class="loading" id="loading"><div class="spinner"></div></div>
 
-<div class="quick">
-  <a href="/p/https://www.youtube.com"><span class="dot" style="background:#ff0000"></span>YouTube</a>
-  <a href="/p/https://x.com"><span class="dot" style="background:#1da1f2"></span>X</a>
-  <a href="/p/https://discord.com"><span class="dot" style="background:#5865f2"></span>Discord</a>
-  <a href="/p/https://www.google.com"><span class="dot" style="background:#4285f4"></span>Google</a>
-  <a href="/p/https://github.com"><span class="dot" style="background:#6e40c9"></span>GitHub</a>
-  <a href="/p/https://www.reddit.com"><span class="dot" style="background:#ff4500"></span>Reddit</a>
-  <a href="/p/https://www.bing.com"><span class="dot" style="background:#008373"></span>Bing</a>
-</div>
+  <script>
+    const frame = document.getElementById('frame');
+    const urlBar = document.getElementById('url-bar');
+    const loading = document.getElementById('loading');
 
-<div class="status">
-  <span><span class="dot" id="statusDot"></span><span id="statusText">Ready</span></span>
-  <span id="urlDisplay"></span>
-</div>
+    function getProxyUrl(url) {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      return '/proxy/' + url;
+    }
 
-<script>
-const input = document.getElementById("url");
-const dot = document.getElementById("statusDot");
-const statusText = document.getElementById("statusText");
-const urlDisplay = document.getElementById("urlDisplay");
-const backBtn = document.getElementById("back");
-const fwdBtn = document.getElementById("fwd");
+    function navigate() {
+      const url = urlBar.value.trim();
+      if (!url) return;
+      loading.classList.add('show');
+      frame.src = getProxyUrl(url);
+    }
 
-let hist = [], hi = -1;
+    function reload() {
+      if (frame.src && frame.src !== 'about:blank') {
+        loading.classList.add('show');
+        frame.src = frame.src; // 再読み込み
+      }
+    }
 
-function navigate(url) {
-  if (!url) return;
-  if (!url.startsWith("http")) url = "https://" + url;
-  if (hi < hist.length - 1) hist = hist.slice(0, hi + 1);
-  hist.push(url); hi++;
-  input.value = url;
-  dot.classList.add("loading");
-  statusText.textContent = "Loading...";
-  urlDisplay.textContent = url;
-  window.location.href = "/p/" + url;
-}
+    function goBack() { history.back(); }
+    function goForward() { history.forward(); }
 
-function goBack() { if (hi > 0) { hi--; input.value = hist[hi]; location.href = "/p/" + hist[hi]; } }
-function goFwd() { if (hi < hist.length - 1) { hi++; input.value = hist[hi]; location.href = "/p/" + hist[hi]; } }
+    frame.addEventListener('load', () => {
+      loading.classList.remove('show');
+    });
 
-document.getElementById("go").onclick = () => navigate(input.value);
-input.addEventListener("keydown", e => { if (e.key === "Enter") navigate(input.value); });
-backBtn.onclick = goBack;
-fwdBtn.onclick = goFwd;
-document.getElementById("reload").onclick = () => { if (hi >= 0) location.reload(); };
-
-// 完了表示（ページ読み込み後）
-window.addEventListener("load", () => {
-  dot.classList.remove("loading");
-  statusText.textContent = "Loaded";
-});
-</script>
+    // 初期表示
+    urlBar.value = 'youtube.com';
+    navigate();
+  </script>
 </body>
 </html>   
