@@ -1,10 +1,8 @@
 services:
   - type: web
-    name: uv-proxy
+    name: my-proxy
     runtime: node
+    nodeVersion: "22.0.0"
     plan: free
     buildCommand: npm install
-    startCommand: node server.js
-    envVars:
-      - key: NODE_VERSION
-        value: "18"   
+    startCommand: npm start   
