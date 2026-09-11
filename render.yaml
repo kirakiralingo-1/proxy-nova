@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: my-proxy
-    runtime: node
-    nodeVersion: "22.0.0"
-    plan: free
-    buildCommand: pnpm install --frozen-lockfile
-    startCommand: node server.js   
