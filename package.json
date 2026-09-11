@@ -2,6 +2,7 @@
   "name": "my-proxy",
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.18.3",
   "scripts": {
     "start": "node server.js"
   },
