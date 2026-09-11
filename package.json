@@ -6,13 +6,13 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@mercuryworkshop/bare-mux": "^2.1.7",
-    "@mercuryworkshop/libcurl-transport": "^1.4.0",
-    "@mercuryworkshop/scramjet": "^1.1.0",
-    "@mercuryworkshop/scramjet-controller": "^1.0.0",
-    "@mercuryworkshop/scramjet-utils": "^1.0.0",
-    "@mercuryworkshop/wisp-js": "^0.4.0",
-    "express": "^4.21.0"
+    "fastify": "^5.7.4",
+    "@fastify/static": "^9.0.0",
+    "@mercuryworkshop/bare-mux": "^2.1.9",
+    "@mercuryworkshop/libcurl-transport": "^1.5.2",
+    "@mercuryworkshop/scramjet": "1.1.0",
+    "@mercuryworkshop/wisp-js": "^0.4.1",
+    "ws": "^8.18.3"
   },
   "engines": {
     "node": ">=20.0.0"
