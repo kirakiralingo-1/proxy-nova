@@ -1,48 +1,40 @@
-import Fastify from "fastify";
-import fastifyStatic from "@fastify/static";
+import express from "express";
+import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
-import { path as scramjetPath } from "@mercuryworkshop/scramjet/path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 1337;
 
-const fastify = Fastify({ logger: true });
+const app = express();
 
-// COOP/COEP
-fastify.addHook("onSend", async (req, reply) => {
-  reply.header("Cross-Origin-Opener-Policy", "same-origin");
-  reply.header("Cross-Origin-Embedder-Policy", "require-corp");
+app.use((_req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  next();
 });
 
-// Scramjet 静的ファイル
-await fastify.register(fastifyStatic, {
-  root: scramjetPath,
-  prefix: "/scram/",
-});
+// 静的ファイル — node_modules パスを直接指定
+app.use("/scram/", express.static(
+  path.resolve(__dirname, "node_modules/@mercuryworkshop/scramjet")
+));
+app.use("/libcurl/", express.static(
+  path.resolve(__dirname, "node_modules/@mercuryworkshop/libcurl-transport")
+));
+app.use(express.static(path.resolve(__dirname, "public")));
 
-// Libcurl transport
-await fastify.register(fastifyStatic, {
-  root: path.resolve(__dirname, "node_modules/@mercuryworkshop/libcurl-transport/dist"),
-  prefix: "/libcurl/",
-});
+const server = createServer(app);
 
-// public
-await fastify.register(fastifyStatic, {
-  root: path.resolve(__dirname, "public"),
-  prefix: "/",
-});
-
-// Wisp WebSocket — raw socket を渡す
-const server = fastify.server;
+// Wisp WebSocket
 server.on("upgrade", (req, socket, head) => {
-  const url = new URL(req.url, "http://localhost");
-  if (url.pathname === "/wisp/") {
+  const p = new URL(req.url ?? "/", "http://localhost").pathname;
+  if (p === "/wisp/") {
+    req.url = p;
     wisp.routeRequest(req, socket, head);
-  } else {
-    socket.destroy();
+    return;
   }
+  socket.end();
 });
 
-await fastify.listen({ port: PORT, host: "0.0.0.0" });   
+server.listen(PORT, () => console.log(`http://localhost:${PORT}`));   
