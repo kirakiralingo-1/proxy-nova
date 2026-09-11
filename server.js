@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 import { path as scramjetPath } from "@mercuryworkshop/scramjet/path";
-import { WebSocketServer } from "ws";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 1337;
@@ -23,7 +22,7 @@ await fastify.register(fastifyStatic, {
   prefix: "/scram/",
 });
 
-// Libcurl transport 静的ファイル
+// Libcurl transport
 await fastify.register(fastifyStatic, {
   root: path.resolve(__dirname, "node_modules/@mercuryworkshop/libcurl-transport/dist"),
   prefix: "/libcurl/",
@@ -35,16 +34,12 @@ await fastify.register(fastifyStatic, {
   prefix: "/",
 });
 
-// Wisp WebSocket
-const wss = new WebSocketServer({ noServer: true });
-wss.on("connection", (ws) => {
-  wisp.routeRequest({ socket: ws, head: Buffer.alloc(0) });
-});
-
-fastify.server.on("upgrade", (req, socket, head) => {
+// Wisp WebSocket — raw socket を渡す
+const server = fastify.server;
+server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/wisp/") {
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+    wisp.routeRequest(req, socket, head);
   } else {
     socket.destroy();
   }
