@@ -1,23 +1,18 @@
-const express = require("express");
-const path = require("path");
-const wisp = require("wisp-server-node");
+const express = require('express');
+const path = require('path');
 
 const app = express();
+const PORT = process.env.PORT || 10000;
 
-// Wisp WebSocket transport
-wisp.listen(app, {
-  allowPrivateIPs: true,
-  allowLoopbackIPs: true,
-});
+// Scramjet の dist ファイルを /scram/ 配下で配信
+const scramjetDist = path.join(
+  __dirname, 'node_modules', '@mercuryworkshop', 'scramjet', 'dist'
+);
+app.use('/scram', express.static(scramjetDist));
 
-// Scramjet static files
-app.use("/scram", express.static(
-  path.join(__dirname, "node_modules/@mercuryworkshop/scramjet/dist")
-));
+// 公開ファイル
+app.use(express.static('public'));
 
-// Custom frontend
-app.use(express.static(path.join(__dirname, "public")));
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`Proxy running on port ${process.env.PORT || 3000}`);
-});   
+app.listen(PORT, '0.0.0.0', () =>
+  console.log(`Scramjet proxy on :${PORT}`)
+);   
