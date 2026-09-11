@@ -1,40 +1,58 @@
-import express from "express";
+import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
 import path from "node:path";
-import { createServer } from "node:http";
+import { createRequire } from "node:module";
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 import { scramjetPath } from "@mercuryworkshop/scramjet/path";
+import { WebSocketServer } from "ws";
 
-const app = express();
+const require = createRequire(import.meta.url);
 const PORT = process.env.PORT || 1337;
 
-// COOP/COEP（SharedArrayBuffer 必須）
-app.use((_req, res, next) => {
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-  next();
+const fastify = Fastify({ logger: true });
+
+// COOP/COEP ヘッダー
+fastify.addHook("onSend", async (req, reply) => {
+  reply.header("Cross-Origin-Opener-Policy", "same-origin");
+  reply.header("Cross-Origin-Embedder-Policy", "require-corp");
 });
 
-// 静的ファイルマウント
-const dirOf = (specifier) => path.dirname(require.resolve(specifier));
+// 静的ファイル
+const scramDir = require.resolve("@mercuryworkshop/scramjet/dist/scramjet.all.js");
+const scramRoot = path.dirname(scramDir);
 
-app.use("/scram/", express.static(scramjetPath));
-app.use("/controller/", express.static(dirOf("@mercuryworkshop/scramjet-controller")));
-app.use("/utils/", express.static(dirOf("@mercuryworkshop/scramjet-utils")));
-app.use("/libcurl/", express.static(dirOf("@mercuryworkshop/libcurl-transport")));
-app.use(express.static("public"));
+await fastify.register(fastifyStatic, {
+  root: scramRoot,
+  prefix: "/scram/",
+});
 
-const server = createServer(app);
+const libcurlDir = path.dirname(
+  require.resolve("@mercuryworkshop/libcurl-transport")
+);
+await fastify.register(fastifyStatic, {
+  root: libcurlDir,
+  prefix: "/libcurl/",
+});
+
+await fastify.register(fastifyStatic, {
+  root: path.resolve("public"),
+  prefix: "/",
+});
 
 // Wisp WebSocket
-wisp.options.allow_private_ips = true;
-wisp.options.allow_loopback_ips = true;
-server.on("upgrade", (req, socket, head) => {
-  const p = new URL(req.url ?? "/", "http://localhost").pathname;
-  if (p === "/wisp/") {
-    wisp.routeRequest(req, socket, head);
-    return;
-  }
-  socket.end();
+const wss = new WebSocketServer({ noServer: true });
+wss.on("connection", (ws) => {
+  wisp.routeRequest({ socket: ws, head: Buffer.alloc(0) });
 });
 
-server.listen(PORT, () => console.log(`http://localhost:${PORT}`));   
+const server = fastify.server;
+server.on("upgrade", (req, socket, head) => {
+  const url = new URL(req.url, "http://localhost");
+  if (url.pathname === "/wisp/") {
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+  } else {
+    socket.destroy();
+  }
+});
+
+await fastify.listen({ port: PORT, host: "0.0.0.0" });   
