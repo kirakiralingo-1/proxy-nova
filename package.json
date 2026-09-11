@@ -2,6 +2,12 @@
   "name": "my-proxy",
   "version": "1.0.0",
   "type": "module",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@mercuryworkshop/libcurl-transport",
+      "@mercuryworkshop/bare-mux"
+    ]
+  },
   "scripts": {
     "start": "node server.js"
   },
