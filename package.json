@@ -1,21 +1,12 @@
 {
   "name": "my-proxy",
   "version": "1.0.0",
-  "type": "module",
-  "engines": {
-    "node": ">=16.0.0"
-  },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "fastify": "^5.7.4",
-    "@fastify/static": "^9.0.0",
-    "@mercuryworkshop/bare-mux": "^2.1.9",
-    "@mercuryworkshop/libcurl-transport": "^1.5.2",
-    "@mercuryworkshop/scramjet": "https://github.com/MercuryWorkshop/scramjet/releases/download/v1.1.0/mercuryworkshop-scramjet-1.1.0.tgz",
-    "@mercuryworkshop/wisp-js": "^0.4.1",
-    "ws": "^8.18.3"
-  },
-  "packageManager": "pnpm@10.18.3"
+    "@mercuryworkshop/scramjet": "^2.0.0-alpha",
+    "express": "^4.18.0",
+    "wisp-server-node": "^1.0.0"
+  }
 }   
