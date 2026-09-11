@@ -3,6 +3,6 @@ services:
     name: my-scramjet-proxy
     runtime: node
     plan: free
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: corepack enable && pnpm install
+    startCommand: node src/index.js
     healthCheckPath: /   
