@@ -1,17 +1,14 @@
 import express from "express";
 import { createServer } from "node:http";
 import { createBareServer } from "@tomphttp/bare-server-node";
-import { createWispServer } from "wisp-server-node";
+import wisp from "wisp-server-node";
 import { publicPath } from "ultraviolet-static";
 import { uvPath } from "@titaniumnetwork-dev/ultraviolet";
+import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
+import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const bare = createBareServer("/bare/");
-const wisp = createWispServer("/wisp/");
 const app = express();
 
 // CORS
@@ -21,33 +18,34 @@ app.use((req, res, next) => {
   next();
 });
 
-// 静的ファイル
-app.use(express.static(join(__dirname, "public")));
-app.use("/uv/", express.static(uvPath));
+// 静的ファイル（公式ウィキの順）
 app.use(express.static(publicPath));
+app.use("/uv/", express.static(uvPath));
+app.use("/epoxy/", express.static(epoxyPath));
+app.use("/baremux/", express.static(baremuxPath));
 
-// フォールバック 404
+// 404
 app.use((req, res) => {
-  res.status(404).sendFile(join(__dirname, "public", "index.html"));
+  res.status(404).sendFile(join(publicPath, "404.html"));
 });
 
 const server = createServer();
 
 server.on("request", (req, res) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   if (bare.shouldRoute(req)) {
     bare.routeRequest(req, res);
-  } else if (wisp.shouldRoute(req)) {
-    wisp.routeRequest(req, res);
   } else {
     app(req, res);
   }
 });
 
 server.on("upgrade", (req, socket, head) => {
-  if (bare.shouldRoute(req)) {
+  if (req.url.endsWith("/wisp/")) {
+    wisp.routeRequest(req, socket, head);
+  } else if (bare.shouldRoute(req)) {
     bare.routeUpgrade(req, socket, head);
-  } else if (wisp.shouldRoute(req)) {
-    wisp.routeUpgrade(req, socket, head);
   } else {
     socket.end();
   }
@@ -61,7 +59,6 @@ server.listen(port, () => {
 function shutdown() {
   server.close();
   bare.close();
-  wisp.close();
   process.exit(0);
 }
 process.on("SIGINT", shutdown);
