@@ -4,5 +4,5 @@ services:
     runtime: node
     nodeVersion: "22.0.0"
     plan: free
-    buildCommand: npm install
-    startCommand: npm start   
+    buildCommand: pnpm install --frozen-lockfile
+    startCommand: node server.js   
