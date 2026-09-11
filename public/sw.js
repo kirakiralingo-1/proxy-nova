@@ -1,8 +1,14 @@
 importScripts("/scram/scramjet.all.js");
 
-self.onfetch = (event) => {
-  const { client, request } = event;
-  if (client && request.mode !== "navigate") {
-    event.respondWith(scramjet.handleFetch(request, client));
-  }
-};   
+const { ScramjetServiceWorker } = $scramjetLoadWorker();
+const scramjet = new ScramjetServiceWorker();
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(async () => {
+    await scramjet.loadConfig();
+    if (scramjet.route(event)) {
+      return scramjet.fetch(event);
+    }
+    return fetch(event.request);
+  });
+});   
