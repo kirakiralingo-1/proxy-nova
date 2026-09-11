@@ -2,6 +2,7 @@
   "name": "my-proxy",
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.18.3",
   "pnpm": {
     "onlyBuiltDependencies": [
       "@mercuryworkshop/libcurl-transport",
@@ -15,7 +16,7 @@
     "express": "^4.21.0",
     "@mercuryworkshop/bare-mux": "^2.1.9",
     "@mercuryworkshop/libcurl-transport": "^1.5.2",
-    "@mercuryworkshop/scramjet": "https://github.com/MercuryWorkshop/scramjet/releases/download/v1.1.0/mercuryworkshop-scramjet-1.1.0.tgz",
+    "@mercuryworkshop/scramjet": "1.1.0",
     "@mercuryworkshop/wisp-js": "^0.4.1"
   },
   "engines": {
