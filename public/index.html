@@ -1,157 +1,24 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scramjet Proxy</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #0a0a0f;
-    color: #e0e0e0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  header {
-    padding: 1rem 1.5rem;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .logo {
-    font-size: 1.3rem;
-    font-weight: 800;
-    background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .bar {
-    display: flex;
-    flex: 1;
-    gap: 0.5rem;
-  }
-  .bar input {
-    flex: 1;
-    padding: 0.6rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.05);
-    color: #fff;
-    font-size: 0.9rem;
-    outline: none;
-    transition: border-color .2s;
-  }
-  .bar input:focus { border-color: #6366f1; }
-  .bar button {
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    border: none;
-    background: linear-gradient(135deg, #6366f1, #a855f7);
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity .2s;
-  }
-  .bar button:hover { opacity: .85; }
-  #container {
-    flex: 1;
-    position: relative;
-  }
-  #container iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-  .loading {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #0a0a0f;
-    transition: opacity .3s;
-  }
-  .loading.hidden { opacity: 0; pointer-events: none; }
-  .spinner {
-    width: 40px; height: 40px;
-    border: 3px solid rgba(99,102,241,0.3);
-    border-top-color: #6366f1;
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
+  <meta charset="utf-8">
+  <title>My Proxy</title>
+  <style>
+    iframe { width: 100%; height: 100vh; border: none; }
+    #bar { display: flex; gap: 4px; padding: 8px; background: #222; }
+    #bar input { flex: 1; padding: 6px; }
+  </style>
 </head>
 <body>
-<header>
-  <span class="logo">⚡ Scramjet</span>
-  <div class="bar">
-    <input id="url" type="text" placeholder="https://example.com" autofocus>
+  <div id="bar">
+    <input id="url" placeholder="https://example.com" />
     <button id="go">Go</button>
   </div>
-</header>
-<div id="container">
-  <div class="loading" id="loading"><div class="spinner"></div></div>
-</div>
-
-<script src="/scram/scramjet.all.js"></script>
-<script src="/libcurl/index.mjs" type="module" id="libcurl"></script>
-<script type="module">
-  const { ScramjetController } = $scramjetLoadController();
-
-  // BareMux + libcurl transport
-  const BareMux = await import("/baremux/index.mjs");
-  const libcurl = await import("/libcurl/index.mjs");
-
-  const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-  connection.setTransport(new libcurl.LibcurlClient({
-    wisp: location.origin + "/wisp/"
-  }));
-
-  const scramjet = new ScramjetController({
-    files: {
-      wasm: "/scram/scramjet.wasm.wasm",
-      all: "/scram/scramjet.all.js",
-      sync: "/scram/scramjet.sync.js",
-    }
-  });
-
-  // Service Worker 登録
-  await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-  await navigator.serviceWorker.ready;
-
-  await scramjet.init();
-
-  const container = document.getElementById("container");
-  const frame = scramjet.createFrame();
-  container.appendChild(frame.frame);
-
-  const urlInput = document.getElementById("url");
-  const goBtn = document.getElementById("go");
-  const loading = document.getElementById("loading");
-
-  function go() {
-    let v = urlInput.value.trim();
-    if (!v) return;
-    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
-    loading.classList.remove("hidden");
-    frame.go(v);
-  }
-
-  goBtn.addEventListener("click", go);
-  urlInput.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
-
-  frame.addEventListener("urlchange", e => {
-    urlInput.value = e.url;
-    loading.classList.add("hidden");
-  });
-
-  // デフォルトページ
-  frame.go("https://example.com");
-</script>
+  <div id="frame"></div>
+  <script src="/scram/scramjet.all.js"></script>
+  <script src="/libcurl/index.js"></script>
+  <script src="/controller/controller.api.js"></script>
+  <script src="/utils/scramjet-utils.js"></script>
+  <script src="/js/engine.js"></script>
 </body>
 </html>   
