@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: my-scramjet-proxy
-    runtime: node
-    plan: free
-    buildCommand: corepack enable && pnpm install
-    startCommand: node src/index.js
-    healthCheckPath: /   
