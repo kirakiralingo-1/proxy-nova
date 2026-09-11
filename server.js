@@ -1,41 +1,37 @@
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";
-import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
-import { scramjetPath } from "@mercuryworkshop/scramjet/path";
+import { path as scramjetPath } from "@mercuryworkshop/scramjet/path";
 import { WebSocketServer } from "ws";
 
-const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 1337;
 
 const fastify = Fastify({ logger: true });
 
-// COOP/COEP ヘッダー
+// COOP/COEP
 fastify.addHook("onSend", async (req, reply) => {
   reply.header("Cross-Origin-Opener-Policy", "same-origin");
   reply.header("Cross-Origin-Embedder-Policy", "require-corp");
 });
 
-// 静的ファイル
-const scramDir = require.resolve("@mercuryworkshop/scramjet/dist/scramjet.all.js");
-const scramRoot = path.dirname(scramDir);
-
+// Scramjet 静的ファイル
 await fastify.register(fastifyStatic, {
-  root: scramRoot,
+  root: scramjetPath,
   prefix: "/scram/",
 });
 
-const libcurlDir = path.dirname(
-  require.resolve("@mercuryworkshop/libcurl-transport")
-);
+// Libcurl transport 静的ファイル
 await fastify.register(fastifyStatic, {
-  root: libcurlDir,
+  root: path.resolve(__dirname, "node_modules/@mercuryworkshop/libcurl-transport/dist"),
   prefix: "/libcurl/",
 });
 
+// public
 await fastify.register(fastifyStatic, {
-  root: path.resolve("public"),
+  root: path.resolve(__dirname, "public"),
   prefix: "/",
 });
 
@@ -45,8 +41,7 @@ wss.on("connection", (ws) => {
   wisp.routeRequest({ socket: ws, head: Buffer.alloc(0) });
 });
 
-const server = fastify.server;
-server.on("upgrade", (req, socket, head) => {
+fastify.server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/wisp/") {
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
