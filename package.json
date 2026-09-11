@@ -1,17 +1,14 @@
 {
-  "name": "my-uv-proxy",
+  "name": "my-proxy",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@titaniumnetwork-dev/ultraviolet": "^3.2.6",
-    "ultraviolet-static": "^1.0.2",
-    "@tomphttp/bare-server-node": "^2.0.3",
-    "wisp-server-node": "^1.1.3",
-    "@mercuryworkshop/bare-mux": "^2.1.7",
-    "@mercuryworkshop/epoxy-transport": "^2.1.3",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "@titaniumnetwork-dev/ultraviolet": "^3.0.0",
+    "@tomphttp/bare-server-node": "^1.0.0",
+    "ultraviolet-static": "^1.0.0"
   }
 }   
